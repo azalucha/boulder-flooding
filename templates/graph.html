@@ -1,0 +1,123 @@
+<html>
+<!-- template provided by TDI -->
+  <head>
+    <link rel="stylesheet" href="//cdn.pydata.org/bokeh/release/bokeh-0.12.7.min.css" type="text/css" />
+    <script type="text/javascript" src="//cdn.pydata.org/bokeh/release/bokeh-0.12.7.min.js"></script>
+      {{ script | safe }}
+
+    <style>
+.topnav {
+  overflow: hidden;
+  background-color: #333;
+}
+
+.topnav a {
+  float: left;
+  color: #f2f2f2;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+.topnav a:hover {
+  background-color: #ddd;
+  color: black;
+}
+
+
+/* Create two unequal columns that floats next to each other */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 20;
+    font-family: Verdana, Sans-serif;
+}
+
+
+.column {
+    float: left;
+    padding: 10px;
+}
+
+.left {
+  width: 50%;
+}
+
+.right {
+  width: 50%;
+}
+
+/* Clear floats after the columns */
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+    </style>
+  <title>Rental Property Floodplain Calculator: Result</title>
+  </head>
+  <body>
+      <div class="topnav">
+    <a href="/">Home</a>
+    <a href="/static/about.html">About</a>
+    <a href="/static/contact.html">Contact</a>
+    <a href="https://bouldercolorado.gov/open-data">Boulder data</a>
+    <a href="http://data.opencolorado.org/">Colorado data</a>
+</div>
+
+    <div><h2><font color="red">The property you selected lies in the red circle.  Use the tools to the right to zoom in.</font></h2></div>
+    <div class='bokeh'>
+      {{ div | safe }}
+    </div>
+
+<div class="row">
+    <div class="column left">
+    <h2>Historical Floodplains</h2>
+    {% for creek, val in nameandyesno %}
+    {% if val == True %}
+    <div style="color:red;font-weight: bold">{{creek}}: Yes</div>
+    {% else %}
+    <div style="color:black;">{{creek}}: No</div>
+   {% endif %}
+   {% endfor %}
+   </div>
+
+   <div class="column right">
+    <h2>2013 Flood Extent</h2>
+    {% for creek, val in nameandyesno_2013 %}
+    {% if val == True %}
+    <div style="color:red;font-weight: bold">{{creek}}: Yes</div>
+    {% else %}
+     <div style="color:black;">{{creek}}: No</div>
+   {% endif %}
+   {% endfor %}
+   </div>
+</div>
+
+   <div><h2><font color="red">The property you selected lies in {{intersections}} floodplain(s). <br> How do you compare to other properties?</font></h2></div>
+   <div>
+       {% if intersections==0 %}
+       <img src="/static/comparison0.png" >
+       {% elif intersections==1 %}
+       <img src="/static/comparison1.png" >
+       {% elif intersections==2 %}
+       <img src="/static/comparison2.png" >
+       {% elif intersections==3 %}
+       <img src="/static/comparison3.png" >
+       {% elif intersections==4 %}
+       <img src="/static/comparison4.png" >
+       {% elif intersections==5 %}
+       <img src="/static/comparison5.png" >
+       {% endif %}
+   </div>
+
+
+
+
+   <div> <i><h4><a href="https://bouldercolorado.gov/open-data?"> Data provided by the City of Boulder, Colorado Open Data Catalog</a></h4></i></div>
+  </body>
+</html>
+
