@@ -88,7 +88,13 @@ def format_address(address_unformatted):
         address=address.replace('.', '').replace('  ', ' ').upper()
         if address[-1]==' ':
            address=address[:-1]
-        return address
+        #I just need the key values here
+        count_dict=get_count_data()
+        keys=count_dict.keys()
+        if address not in keys:
+            return error
+        else:
+            return address
     except:
         return "error"
 
