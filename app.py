@@ -299,6 +299,9 @@ def plot_map(address):
     p.legend.location = "bottom_right"
     p.axis.major_label_text_font_size="12pt"
 
+    p.xgrid.grid_line_color = None
+    p.ygrid.grid_line_color = None
+
     script, div = components(p)
 
     ##show(p)
