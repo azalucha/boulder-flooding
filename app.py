@@ -8,6 +8,7 @@ from bokeh.embed import components
 import numpy as np
 from pandas.io.json import json_normalize
 from shapely.geometry.polygon import LinearRing, Polygon
+from shapely.geometry import LineString
 from bokeh.plotting import figure, output_file, show
 from bokeh.models import Range1d
 from shapely.geometry import Polygon
@@ -53,7 +54,7 @@ def make_count_pie(address):
 
     #fig = ax.get_figure()
     fig.set_size_inches(8,8)
-    plt.savefig('/home/amzalucha/mysite/static/comparison'+intsect+'.png')
+    plt.savefig('comparison'+intsect+'.png')
     plt.close(fig)
 
     #p2=plt.plot(range(10),range(10))
@@ -63,40 +64,31 @@ def make_count_pie(address):
 #Make use of address package but it's not an exact match because
 #it's written in python 2, so I had to convert *.py files to python 3 using 2to3
 def format_address(address_unformatted):
-    try:
-        addr_no_period_upper=address_unformatted.replace('.', '').replace(',','').upper()
-        #The parser gets confused if there isn't a city, state, and zip, so append a dummy one if the user doesn't enter it
-        if 'BOULDER' not in addr_no_period_upper:
-            addr_no_period_upper=addr_no_period_upper+', BOULDER, CO 80301'
-        #It can't seem to parse addresses that have an apartment-like word
-        addr_no_apt=addr_no_period_upper.replace('APT', '')
-        addr_no_apt=addr_no_apt.replace('UNIT', '')
-        addr_no_apt=addr_no_apt.replace('APARTMENT', '')
-        addr_no_apt=addr_no_apt.replace('SUITE', '')
-        addr_no_apt=addr_no_apt.replace('STE', '')
-        addr_no_apt=addr_no_apt.replace('NUMBER', '')
-        addr_no_apt=addr_no_apt.replace('NUM', '')
-        ap = AddressParser()
-        address_parsed = ap.parse_address(addr_no_apt)
-        if address_parsed.street_prefix==None:
-            address_parsed.street_prefix=''
-        if address_parsed.apartment==None:
-            address_parsed.apartment=''
-        if address_parsed.street_suffix=='Ave.':
-            address_parsed.street_suffix='AV'
-        address=address_parsed.house_number+' '+address_parsed.street_prefix+' '+address_parsed.street+' '+address_parsed.street_suffix+' '+address_parsed.apartment
-        address=address.replace('.', '').replace('  ', ' ').upper()
-        if address[-1]==' ':
-           address=address[:-1]
-        #I just need the key values here
-        count_dict=get_count_data()
-        keys=count_dict.keys()
-        if address not in keys:
-            return error
-        else:
-            return address
-    except:
-        return "error"
+    addr_no_period_upper=address_unformatted.replace('.', '').replace(',','').upper()
+    #The parser gets confused if there isn't a city, state, and zip, so append a dummy one if the user doesn't enter it
+    if 'BOULDER' not in addr_no_period_upper:
+        addr_no_period_upper=addr_no_period_upper+', BOULDER, CO 80301'
+    #It can't seem to parse addresses that have an apartment-like word
+    addr_no_apt=addr_no_period_upper.replace('APT', '')
+    addr_no_apt=addr_no_apt.replace('UNIT', '')
+    addr_no_apt=addr_no_apt.replace('APARTMENT', '')
+    addr_no_apt=addr_no_apt.replace('SUITE', '')
+    addr_no_apt=addr_no_apt.replace('STE', '')
+    addr_no_apt=addr_no_apt.replace('NUMBER', '')
+    addr_no_apt=addr_no_apt.replace('NUM', '')
+    ap = AddressParser()
+    address_parsed = ap.parse_address(addr_no_apt)
+    if address_parsed.street_prefix==None:
+        address_parsed.street_prefix=''
+    if address_parsed.apartment==None:
+        address_parsed.apartment=''
+    if address_parsed.street_suffix=='Ave.':
+        address_parsed.street_suffix='AV'
+    address=address_parsed.house_number+' '+address_parsed.street_prefix+' '+address_parsed.street+' '+address_parsed.street_suffix+' '+address_parsed.apartment
+    address=address.replace('.', '').replace('  ', ' ').upper()
+    if address[-1]==' ':
+        address=address[:-1]
+    return address
 
 #converts coordinate list to a list of longitudes and latitudes
 def coors_to_lon_lat(coors):
@@ -132,11 +124,13 @@ def coors_to_polygon_prop(coors):
         out=boxlist
     return out
 
+#rental property coordinates
 def get_rental_data():
     with open('/home/amzalucha/mysite/prop_dict.json', 'r') as fp:
         prop_dict = json.load(fp)
     return prop_dict
 
+#Boulder city limits
 def read_limit_data():
     with open('/home/amzalucha/mysite/boulder_city_limits.json') as json_data:
         data = json.load(json_data)
@@ -147,6 +141,28 @@ def read_limit_data():
     #list of city limit coordinates, by section
     boxlist=[box for box in limits if len(box)>2]
     return boxlist
+
+#Major roads and highways in Boulder
+def read_road_data():
+    #df_roads = pd.read_pickle('/home/amzalucha/mysite/roads.pkl')
+    with open('/home/amzalucha/mysite/Streets.GeoJSON') as json_data:
+        data = json.load(json_data)
+    df_streets=json_normalize(data["features"])
+    df_major_rd=df_streets.loc[df_streets['properties.ROADCLASS'] == 'MAJOR ROAD']
+    df_highway=df_streets.loc[df_streets['properties.ROADCLASS'] == 'HIGHWAY']
+    frames=[df_major_rd,df_highway]
+    df_roads=pd.concat(frames)
+    road_list=list(df_roads["geometry.coordinates"])
+    road_lons=[]
+    road_lats=[]
+    for road in road_list:
+        road_lon=[row[0] for row in road]
+        road_lat=[row[1] for row in road]
+        road_lons.append(road_lon)
+        road_lats.append(road_lat)
+    return road_lons,road_lats
+
+
 
 #makes a dataframe of floodplains that overlap the property
 def get_creek_prop_overlap(prop_polygon_list):
@@ -203,7 +219,7 @@ def get_creek_prop_overlap(prop_polygon_list):
 
 #makes a dataframe of floodplains that overlap the property for 2013
 def get_creek_prop_overlap_2013(prop_polygon_list):
-    df_fp_city = pd.read_pickle('fp_city_2013.pkl')
+    df_fp_city = pd.read_pickle('/home/amzalucha/mysite/fp_city_2013.pkl')
     fp_coors_list=list(df_fp_city["geometry.coordinates"])
     fp_geo_type=list(df_fp_city["geometry.type"])
     fp_name=list(df_fp_city["properties.CREEK"])
@@ -247,6 +263,9 @@ def plot_map(address):
 
     boxlist=read_limit_data()
 
+    #roads=read_road_data()
+    road_lons,road_lats=read_road_data()
+
     #100 and 500 year floodplains
     creek_prop_overlap,yesnocreeks,full_name=get_creek_prop_overlap(prop_polygon_list)
 
@@ -284,7 +303,10 @@ def plot_map(address):
 
     for box in boxlist:
         lon,lat=coors_to_lon_lat(box)
-        p.patch(lon, lat, alpha=0.5, line_width=2, color="Black", fill_alpha=0., legend="Boulder city limits")
+        p.patch(lon, lat, alpha=0.8, line_width=2, color="Black", fill_alpha=0., legend="Boulder city limits")
+
+
+    p.multi_line(road_lons, road_lats, color="lightcoral", alpha=0.3, line_width=2, legend="Major roads")
 
     p.annulus(np.mean(lons),np.mean(lats), inner_radius=0.01, outer_radius=0.011,
     color="red", alpha=0.8)
@@ -294,7 +316,7 @@ def plot_map(address):
     p.xaxis.axis_label_text_font_size="14pt"
     p.yaxis.axis_label_text_font_size="14pt"
     p.x_range = Range1d(*(-105.32, -105.15))
-    p.y_range=Range1d(*(39.94,40.1))
+    p.y_range=Range1d(*(39.92,40.1))
 
     p.legend.location = "bottom_right"
     p.axis.major_label_text_font_size="12pt"
@@ -306,7 +328,7 @@ def plot_map(address):
 
     ##show(p)
     return script, div, yesnocreeks,full_name, yesnocreeks_2013,full_name_2013
-    ##return
+    return
 
 
 @app.route('/graph')#output
@@ -315,9 +337,6 @@ def graph():
         address_unformatted = request.args.get('address', '')
 
         address=format_address(address_unformatted)
-
-        if address=="error":
-            return redirect("static/error.html", code=302)
 
         intersections=make_count_pie(address)
 
@@ -336,6 +355,6 @@ def graph():
         ##return
 
 
-
 if __name__ == '__main__':
   app.run(port=33507)
+
