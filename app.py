@@ -64,31 +64,40 @@ def make_count_pie(address):
 #Make use of address package but it's not an exact match because
 #it's written in python 2, so I had to convert *.py files to python 3 using 2to3
 def format_address(address_unformatted):
-    addr_no_period_upper=address_unformatted.replace('.', '').replace(',','').upper()
-    #The parser gets confused if there isn't a city, state, and zip, so append a dummy one if the user doesn't enter it
-    if 'BOULDER' not in addr_no_period_upper:
-        addr_no_period_upper=addr_no_period_upper+', BOULDER, CO 80301'
-    #It can't seem to parse addresses that have an apartment-like word
-    addr_no_apt=addr_no_period_upper.replace('APT', '')
-    addr_no_apt=addr_no_apt.replace('UNIT', '')
-    addr_no_apt=addr_no_apt.replace('APARTMENT', '')
-    addr_no_apt=addr_no_apt.replace('SUITE', '')
-    addr_no_apt=addr_no_apt.replace('STE', '')
-    addr_no_apt=addr_no_apt.replace('NUMBER', '')
-    addr_no_apt=addr_no_apt.replace('NUM', '')
-    ap = AddressParser()
-    address_parsed = ap.parse_address(addr_no_apt)
-    if address_parsed.street_prefix==None:
-        address_parsed.street_prefix=''
-    if address_parsed.apartment==None:
-        address_parsed.apartment=''
-    if address_parsed.street_suffix=='Ave.':
-        address_parsed.street_suffix='AV'
-    address=address_parsed.house_number+' '+address_parsed.street_prefix+' '+address_parsed.street+' '+address_parsed.street_suffix+' '+address_parsed.apartment
-    address=address.replace('.', '').replace('  ', ' ').upper()
-    if address[-1]==' ':
-        address=address[:-1]
-    return address
+    try:
+        addr_no_period_upper=address_unformatted.replace('.', '').replace(',','').upper()
+        #The parser gets confused if there isn't a city, state, and zip, so append a dummy one if the user doesn't enter it
+        if 'BOULDER' not in addr_no_period_upper:
+          addr_no_period_upper=addr_no_period_upper+', BOULDER, CO 80301'
+        #It can't seem to parse addresses that have an apartment-like word
+        addr_no_apt=addr_no_period_upper.replace('APT', '')
+        addr_no_apt=addr_no_apt.replace('UNIT', '')
+        addr_no_apt=addr_no_apt.replace('APARTMENT', '')
+        addr_no_apt=addr_no_apt.replace('SUITE', '')
+        addr_no_apt=addr_no_apt.replace('STE', '')
+        addr_no_apt=addr_no_apt.replace('NUMBER', '')
+        addr_no_apt=addr_no_apt.replace('NUM', '')
+        ap = AddressParser()
+        address_parsed = ap.parse_address(addr_no_apt)
+        if address_parsed.street_prefix==None:
+            address_parsed.street_prefix=''
+        if address_parsed.apartment==None:
+            address_parsed.apartment=''
+        if address_parsed.street_suffix=='Ave.':
+           address_parsed.street_suffix='AV'
+        address=address_parsed.house_number+' '+address_parsed.street_prefix+' '+address_parsed.street+' '+address_parsed.street_suffix+' '+address_parsed.apartment
+        address=address.replace('.', '').replace('  ', ' ').upper()
+        if address[-1]==' ':
+            address=address[:-1]
+        #I just need the key values here
+        count_dict=get_count_data()
+        keys=count_dict.keys()
+        if address not in keys:
+            return "error"
+        else:
+            return address
+    except:
+        return "error"
 
 #converts coordinate list to a list of longitudes and latitudes
 def coors_to_lon_lat(coors):
@@ -328,7 +337,7 @@ def plot_map(address):
 
     ##show(p)
     return script, div, yesnocreeks,full_name, yesnocreeks_2013,full_name_2013
-    return
+    #return
 
 
 @app.route('/graph')#output
@@ -338,9 +347,13 @@ def graph():
 
         address=format_address(address_unformatted)
 
+        if address=="error":
+             return redirect("static/error.html", code=302)
+
         intersections=make_count_pie(address)
 
         # Create the plot
+
         script, div, yesnocreeks,full_name, yesnocreeks_2013,full_name_2013 = plot_map(address)
 
         nameandyesno=list(zip(full_name,yesnocreeks))
